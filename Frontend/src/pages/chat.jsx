@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import jwtDecode from "jwt-decode";
+import { WS_BASE_URL } from "../config";
 
 const ChatApp = () => {
   const { caseId } = useParams();
@@ -21,7 +22,7 @@ const ChatApp = () => {
     }
 
     const socket = new WebSocket(
-      `ws://localhost:8000/ws/cases/${caseId}?token=${encodeURIComponent(token)}`
+      `${WS_BASE_URL}/ws/cases/${caseId}?token=${encodeURIComponent(token)}`
     );
     let active = true;
     socketRef.current = socket;

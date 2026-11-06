@@ -17,6 +17,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import jwtDecode from "jwt-decode";
 import Navbar from "../components/Navbar";
+import { API_BASE_URL } from "../config";
 
 const Cases = () => {
   const [cases, setCases] = useState([]);
@@ -52,7 +53,7 @@ const Cases = () => {
     setError("");
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:8000/cases/list_cases", {
+      const response = await axios.get(`${API_BASE_URL}/cases/list_cases`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -73,7 +74,7 @@ const Cases = () => {
     setMyCasesLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:8000/cases/user_cases/me", {
+      const response = await axios.get(`${API_BASE_URL}/cases/user_cases/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMyCases(response.data);
@@ -89,7 +90,7 @@ const Cases = () => {
     setError("");
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:8000/cases/${caseId}/accept`, {}, {
+      await axios.put(`${API_BASE_URL}/cases/${caseId}/accept`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       await fetchCases();
@@ -106,7 +107,7 @@ const Cases = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:8000/cases/${caseId}/status`,
+        `${API_BASE_URL}/cases/${caseId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );

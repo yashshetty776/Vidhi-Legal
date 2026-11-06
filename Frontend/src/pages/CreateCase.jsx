@@ -3,6 +3,7 @@ import { Container, TextField, Button, Typography, Alert, MenuItem, Select, Form
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { API_BASE_URL } from "../config";
 
 const CreateCase = () => {
   const [caseData, setCaseData] = useState({
@@ -53,7 +54,7 @@ const CreateCase = () => {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:8000/cases/create_case", {
+      await axios.post(`${API_BASE_URL}/cases/create_case`, {
         ...caseData,
         title: caseData.title.trim(),
         description: caseData.description.trim(),

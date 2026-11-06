@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AppBar, Box, Toolbar, IconButton, Typography, Menu, Container, Avatar, Button, Tooltip, MenuItem, Badge, Popover, List, ListItem, ListItemText, CircularProgress
 } from '@mui/material';
@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import jwtDecode from "jwt-decode";
 import dayjs from "dayjs";
+import { API_BASE_URL } from "../config";
 
 const settings = ['Profile', 'Logout'];
 
@@ -17,6 +18,7 @@ function ResponsiveAppBar() {
   const [role, setRole] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notificationError, setNotificationError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,14 +35,15 @@ function ResponsiveAppBar() {
   }, []);
 
   const fetchNotifications = async () => {
+    setNotificationError("");
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:8000/notifications", {
+      const response = await axios.get(`${API_BASE_URL}/notifications?unread_only=true`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setNotifications(response.data);
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      setNotificationError(error.response?.data?.detail || "Unable to load notifications.");
     } finally {
       setLoading(false);
     }
@@ -49,12 +52,12 @@ function ResponsiveAppBar() {
   const markAsRead = async (notificationId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:8000/notifications/${notificationId}/read`, {}, {
+      await axios.put(`${API_BASE_URL}/notifications/${notificationId}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setNotifications((prev) => prev.filter((notif) => notif._id !== notificationId));
+      setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
     } catch (error) {
-      console.error("Error marking notification as read:", error);
+      setNotificationError(error.response?.data?.detail || "Unable to mark notification as read.");
     }
   };
 
@@ -139,12 +142,14 @@ function ResponsiveAppBar() {
             <List sx={{ width: 300, maxHeight: 300, overflow: 'auto' }}>
               {loading ? (
                 <CircularProgress sx={{ display: "block", mx: "auto", my: 2 }} />
+              ) : notificationError ? (
+                <ListItem><ListItemText primary={notificationError} /></ListItem>
               ) : notifications.length === 0 ? (
                 <ListItem><ListItemText primary="No new notifications" /></ListItem>
               ) : (
                 notifications.map((notif) => (
-                  <ListItem key={notif._id} secondaryAction={
-                    <IconButton edge="end" color="primary" onClick={() => markAsRead(notif._id)}>
+                  <ListItem key={notif.id} secondaryAction={
+                    <IconButton edge="end" color="primary" onClick={() => markAsRead(notif.id)}>
                       <CheckCircle />
                     </IconButton>
                   }>

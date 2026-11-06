@@ -1,46 +1,58 @@
-//Nyayadut.jsx
-
 import { useEffect } from "react";
 
-const Nyaya = () => {
+const CHATBASE_SCRIPT_ID = "V0X8gNmXAWSUjGJ-yRlyz";
+const CHATBASE_SCRIPT_URL = "https://www.chatbase.co/embed.min.js";
+
+const removeChatbaseElements = () => {
+  document
+    .querySelectorAll(
+      `#${CHATBASE_SCRIPT_ID}, script[src="${CHATBASE_SCRIPT_URL}"], iframe[src*="chatbase"], [id*="chatbase"]`
+    )
+    .forEach((element) => element.remove());
+
+  delete window.chatbase;
+};
+
+const Nyayadut = () => {
   useEffect(() => {
+    if (document.getElementById(CHATBASE_SCRIPT_ID)) {
+      return undefined;
+    }
+
+    if (!window.chatbase || window.chatbase("getState") !== "initialized") {
+      window.chatbase = (...args) => {
+        window.chatbase.q = window.chatbase.q || [];
+        window.chatbase.q.push(args);
+      };
+      window.chatbase = new Proxy(window.chatbase, {
+        get(target, property) {
+          if (property === "q") {
+            return target.q;
+          }
+          return (...args) => target(property, ...args);
+        },
+      });
+    }
+
     const script = document.createElement("script");
-    script.innerHTML = `
-      (function(){
-        if(!window.chatbase || window.chatbase("getState") !== "initialized"){
-          window.chatbase = (...arguments) => {
-            if(!window.chatbase.q){window.chatbase.q=[]}
-            window.chatbase.q.push(arguments);
-          };
-          window.chatbase = new Proxy(window.chatbase, {
-            get(target, prop) {
-              if(prop === "q") { return target.q }
-              return (...args) => target(prop, ...args);
-            }
-          });
-        }
-        const onLoad = function(){
-          const script = document.createElement("script");
-          script.src = "https://www.chatbase.co/embed.min.js";
-          script.id = "V0X8gNmXAWSUjGJ-yRlyz";
-          script.domain = "www.chatbase.co";
-          document.body.appendChild(script);
-        };
-        if(document.readyState === "complete") {
-          onLoad();
-        } else {
-          window.addEventListener("load", onLoad);
-        }
-      })();
-    `;
+    script.id = CHATBASE_SCRIPT_ID;
+    script.src = CHATBASE_SCRIPT_URL;
+    script.async = true;
+    script.defer = true;
+    script.domain = "www.chatbase.co";
+    script.onerror = () => {
+      console.error("Nyayadut chatbot failed to load.");
+      script.remove();
+    };
+
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      removeChatbaseElements();
     };
   }, []);
 
-  return null; // No visible component needed
+  return null;
 };
 
-export default Nyaya;
+export default Nyayadut;

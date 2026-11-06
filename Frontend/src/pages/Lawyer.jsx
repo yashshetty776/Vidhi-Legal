@@ -3,6 +3,7 @@ import { Alert, Container, Typography, Card, CardContent, Grid, Avatar, Box, Cir
 import axios from "axios";
 import jwtDecode from "jwt-decode";
 import Navbar from "../components/Navbar";
+import { API_BASE_URL } from "../config";
 
 const Lawyers = () => {
   const [lawyers, setLawyers] = useState([]);
@@ -31,7 +32,7 @@ const Lawyers = () => {
     setError("");
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:8000/users/lawyers", {
+      const response = await axios.get(`${API_BASE_URL}/users/lawyers`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setLawyers(response.data);

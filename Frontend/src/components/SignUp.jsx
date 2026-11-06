@@ -14,6 +14,7 @@ import {
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ const SignUp = () => {
           location: location.trim()
         };
   
-        const response = await axios.post('http://localhost:8000/register', payload);
+        const response = await axios.post(`${API_BASE_URL}/register`, payload);
         
         // Extract token
         const token = response.data.token;

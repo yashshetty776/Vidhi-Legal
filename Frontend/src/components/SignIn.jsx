@@ -13,6 +13,7 @@ import {
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const SignIn = () => {
       formData.append('username', username.trim());
       formData.append('password', password);
 
-      const response = await axios.post('http://localhost:8000/auth/login', formData, {
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -116,7 +117,7 @@ const SignIn = () => {
               </Button>
               <Stack direction="row" justifyContent="flex-end">
                 <Link component={RouterLink} to="/signup" variant="body2">
-                  Don't have an account? Sign Up
+                  Don&apos;t have an account? Sign Up
                 </Link>
               </Stack>
             </Box>

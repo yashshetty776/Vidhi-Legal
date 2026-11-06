@@ -13,7 +13,7 @@ import {
 import axios from "axios";
 import Navbar from "../components/Navbar";
 
-const API_URL = "http://localhost:8000";
+import { API_BASE_URL } from "../config";
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -27,7 +27,7 @@ const Profile = () => {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const response = await axios.get(`${API_URL}/users/profile/me`, {
+        const response = await axios.get(`${API_BASE_URL}/users/profile/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setProfile(response.data);
@@ -58,7 +58,7 @@ const Profile = () => {
     setSaving(true);
     try {
       const response = await axios.put(
-        `${API_URL}/users/profile/me`,
+        `${API_BASE_URL}/users/profile/me`,
         {
           full_name: form.full_name.trim(),
           location: form.location.trim(),

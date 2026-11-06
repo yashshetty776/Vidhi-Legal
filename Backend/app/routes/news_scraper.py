@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException
 from app.utils.scraper import scrape_news
 from app.models.user import User  # Assuming you have a User model for authentication
@@ -14,5 +16,8 @@ async def get_latest_news(current_user: User = Depends(get_current_user)):
     if not current_user:
         raise HTTPException(status_code=403, detail="Not authenticated")
 
-    news_data = scrape_news()
+    try:
+        news_data = await asyncio.to_thread(scrape_news)
+    except RuntimeError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
     return {"news": news_data}

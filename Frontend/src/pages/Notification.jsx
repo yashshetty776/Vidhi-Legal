@@ -1,82 +1,116 @@
-import React, { useState, useEffect } from "react";
-import { 
-  Popover, List, ListItem, ListItemText, IconButton, Badge, CircularProgress
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  Typography,
 } from "@mui/material";
-import { Notifications as NotificationsIcon, CheckCircle } from "@mui/icons-material";
+import { CheckCircle } from "@mui/icons-material";
 import axios from "axios";
-import jwtDecode from "jwt-decode";
 import dayjs from "dayjs";
+import Navbar from "../components/Navbar";
+import { API_BASE_URL } from "../config";
 
 const Notifications = () => {
-  const [anchorEl, setAnchorEl] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  const [error, setError] = useState("");
 
   const fetchNotifications = async () => {
+    setLoading(true);
+    setError("");
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:8000/notifications", {
+      const response = await axios.get(`${API_BASE_URL}/notifications`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setNotifications(response.data);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || "Unable to load notifications.");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
   const markAsRead = async (notificationId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:8000/notifications/${notificationId}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setNotifications((prev) => prev.filter((notif) => notif._id !== notificationId));
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
+      await axios.put(
+        `${API_BASE_URL}/notifications/${notificationId}/read`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setNotifications((previous) =>
+        previous.map((notification) =>
+          notification.id === notificationId
+            ? { ...notification, read: true }
+            : notification
+        )
+      );
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.detail ||
+          "Unable to mark notification as read."
+      );
     }
   };
 
   return (
-    <>
-      <IconButton color="inherit" onClick={(event) => setAnchorEl(event.currentTarget)}>
-        <Badge badgeContent={notifications.length} color="error">
-          <NotificationsIcon />
-        </Badge>
-      </IconButton>
-      <Popover
-        open={Boolean(anchorEl)}
-        anchorEl={anchorEl}
-        onClose={() => setAnchorEl(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <List sx={{ width: 300, maxHeight: 300, overflow: "auto" }}>
-          {loading ? (
-            <CircularProgress sx={{ display: "block", mx: "auto", my: 2 }} />
-          ) : notifications.length === 0 ? (
-            <ListItem>
-              <ListItemText primary="No new notifications" />
-            </ListItem>
-          ) : (
-            notifications.map((notif) => (
-              <ListItem key={notif._id} secondaryAction={
-                <IconButton edge="end" color="primary" onClick={() => markAsRead(notif._id)}>
-                  <CheckCircle />
-                </IconButton>
-              }>
-                <ListItemText primary={notif.message} secondary={dayjs(notif.timestamp).format("MMM D, YYYY h:mm A")} />
+    <div>
+      <Navbar />
+      <Box sx={{ maxWidth: 800, mx: "auto", pt: 12, px: 2 }}>
+        <Typography variant="h4" gutterBottom>
+          Notifications
+        </Typography>
+        {error && (
+          <Alert severity="error" action={<Button onClick={fetchNotifications}>Retry</Button>}>
+            {error}
+          </Alert>
+        )}
+        {loading ? (
+          <CircularProgress sx={{ display: "block", mx: "auto", my: 4 }} />
+        ) : notifications.length === 0 ? (
+          <Alert severity="info">No notifications yet.</Alert>
+        ) : (
+          <List>
+            {notifications.map((notification) => (
+              <ListItem
+                key={notification.id}
+                secondaryAction={
+                  !notification.read && (
+                    <IconButton
+                      edge="end"
+                      color="primary"
+                      aria-label="Mark as read"
+                      onClick={() => markAsRead(notification.id)}
+                    >
+                      <CheckCircle />
+                    </IconButton>
+                  )
+                }
+              >
+                <ListItemText
+                  primary={notification.message}
+                  secondary={`${notification.notification_type} • ${dayjs(
+                    notification.timestamp
+                  ).format("MMM D, YYYY h:mm A")}`}
+                  sx={{ opacity: notification.read ? 0.65 : 1 }}
+                />
               </ListItem>
-            ))
-          )}
-        </List>
-      </Popover>
-    </>
+            ))}
+          </List>
+        )}
+      </Box>
+    </div>
   );
 };
 
