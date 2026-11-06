@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Container,
   Box,
@@ -20,34 +20,48 @@ const SignUp = () => {
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('user'); // Default role
+  const [role, setRole] = useState('client');
   const [experience, setExperience] = useState('');
   const [location, setLocation] = useState('');
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validate = () => {
     let tempErrors = {};
-    tempErrors.fullName = fullName.length >= 3 ? '' : 'Full Name must be at least 3 characters';
-    tempErrors.username = username.length >= 3 ? '' : 'Username must be at least 3 characters';
-    tempErrors.password = password.length >= 6 ? '' : 'Password must be at least 6 characters';
-    tempErrors.confirmPassword = password === confirmPassword ? '' : 'Passwords do not match';
+    tempErrors.fullName = fullName.trim().split(/\s+/).length >= 2 ? '' : 'Enter your first and last name';
+    tempErrors.username = /^[A-Za-z0-9_]{3,50}$/.test(username.trim()) ? '' : 'Use 3-50 letters, numbers, or underscores';
+    const hasPasswordRequirements =
+      password.length >= 8 &&
+      password.length <= 72 &&
+      /[a-z]/.test(password) &&
+      /[A-Z]/.test(password) &&
+      /[^A-Za-z0-9]/.test(password);
+    tempErrors.password = hasPasswordRequirements
+      ? ''
+      : 'Use 8-72 characters with lowercase, uppercase, and a special character';
+    tempErrors.role = role === 'client' || role === 'lawyer' ? '' : 'Choose a valid role';
+    tempErrors.experience = role === 'lawyer' && (!Number.isInteger(Number(experience)) || Number(experience) < 0)
+      ? 'Enter valid experience in years'
+      : '';
+    tempErrors.location = location.trim().length >= 2 ? '' : 'Location is required';
     setErrors(tempErrors);
     return Object.values(tempErrors).every((x) => x === '');
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (validate()) {
-      try {
+    if (!validate()) return;
+
+    setIsSubmitting(true);
+    try {
         const payload = {
-          full_name: fullName,
-          username,
+          full_name: fullName.trim(),
+          username: username.trim(),
           password,
           role,
-          experience: role === 'lawyer' ? parseInt(experience) : 0,
-          location
+          experience: role === 'lawyer' ? Number(experience) : null,
+          location: location.trim()
         };
   
         const response = await axios.post('http://localhost:8000/register', payload);
@@ -58,14 +72,14 @@ const SignUp = () => {
         // Store token
         localStorage.setItem("token", token);
   
-        console.log("Token:", token);
-  
-        // Redirect to Sign In page
-        navigate('/');
-      } catch (error) {
-        console.error("Error:", error.response?.data || error.message);
-        setServerError(error.response?.data?.detail || "Registration failed.");
-      }
+        navigate('/home', { replace: true });
+    } catch (error) {
+      const detail = error.response?.data?.detail;
+      setServerError(
+        Array.isArray(detail) ? detail.map((item) => item.msg).join(', ') : detail || "Registration failed."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -136,19 +150,6 @@ const SignUp = () => {
                 helperText={errors.password}
               />
               <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="confirmPassword"
-                label="Confirm Password"
-                type="password"
-                id="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                error={Boolean(errors.confirmPassword)}
-                helperText={errors.confirmPassword}
-              />
-              <TextField
                 select
                 margin="normal"
                 required
@@ -170,23 +171,28 @@ const SignUp = () => {
                   type="number"
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
+                  error={Boolean(errors.experience)}
+                  helperText={errors.experience}
                 />
               )}
               <TextField
                 margin="normal"
+                required
                 fullWidth
                 id="location"
                 label="Location"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
+                error={Boolean(errors.location)}
+                helperText={errors.location}
               />
               {serverError && (
                 <Typography color="error" variant="body2" sx={{ mt: 1 }}>
                   {serverError}
                 </Typography>
               )}
-              <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-                Sign Up
+              <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={isSubmitting}>
+                {isSubmitting ? 'Signing Up...' : 'Sign Up'}
               </Button>
               <Stack direction="row" justifyContent="flex-end">
                 <Link component={RouterLink} to="/signin" variant="body2">

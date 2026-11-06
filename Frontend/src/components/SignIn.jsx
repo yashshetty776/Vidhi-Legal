@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Container,
   Box,
@@ -19,12 +19,19 @@ const SignIn = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [serverError, setServerError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!username.trim() || !password) {
+      setServerError('Username and password are required.');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append('username', username);
+      const formData = new URLSearchParams();
+      formData.append('username', username.trim());
       formData.append('password', password);
 
       const response = await axios.post('http://localhost:8000/auth/login', formData, {
@@ -39,13 +46,14 @@ const SignIn = () => {
       // Store token
       localStorage.setItem("token", token);
 
-      console.log("Token:", token);
-
-      // Redirect to home page or dashboard
       navigate('/home');
     } catch (error) {
-      console.error("Error:", error.response?.data || error.message);
-      setServerError(error.response?.data?.detail || "Login failed.");
+      const detail = error.response?.data?.detail;
+      setServerError(
+        Array.isArray(detail) ? detail.map((item) => item.msg).join(', ') : detail || "Login failed."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -103,8 +111,8 @@ const SignIn = () => {
                   {serverError}
                 </Typography>
               )}
-              <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-                Sign In
+              <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={isSubmitting}>
+                {isSubmitting ? 'Signing In...' : 'Sign In'}
               </Button>
               <Stack direction="row" justifyContent="flex-end">
                 <Link component={RouterLink} to="/signup" variant="body2">
