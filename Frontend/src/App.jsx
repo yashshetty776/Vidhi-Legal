@@ -18,11 +18,9 @@ import NotFound from './pages/NotFound';
 function App() {
   const location = useLocation();
   const isAuthenticationPage = location.pathname === '/' || location.pathname === '/signin' || location.pathname === '/signup';
-  const hasSession = Boolean(localStorage.getItem('token'));
-
   return (
     <div>
-    {!isAuthenticationPage && hasSession && <Nyaya />}
+    {!isAuthenticationPage && <Nyaya />}
     <Routes>
       <Route path="/" element={<SignIn />} />
       <Route path="/signin" element={<SignIn />} />

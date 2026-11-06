@@ -16,6 +16,7 @@ class Settings(BaseModel):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = Field(default=30, ge=1, le=1440)
     allow_public_lawyer_registration: bool = False
+    cookie_secure: bool = False
     cors_origins: list[str] = Field(min_length=1)
 
     @field_validator("algorithm")
@@ -45,6 +46,7 @@ def _environment_settings() -> Settings:
         allow_public_lawyer_registration=os.getenv(
             "ALLOW_PUBLIC_LAWYER_REGISTRATION", "false"
         ),
+        cookie_secure=os.getenv("COOKIE_SECURE", "false"),
         cors_origins=raw_origins,
     )
 
@@ -57,4 +59,5 @@ DATABASE_NAME = settings.database_name
 ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 ALLOW_PUBLIC_LAWYER_REGISTRATION = settings.allow_public_lawyer_registration
+COOKIE_SECURE = settings.cookie_secure
 ALLOWED_ORIGINS = settings.cors_origins

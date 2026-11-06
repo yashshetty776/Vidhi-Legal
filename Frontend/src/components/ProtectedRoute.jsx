@@ -1,25 +1,30 @@
+import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import jwtDecode from "jwt-decode";
+import axios from "axios";
+import { API_BASE_URL } from "../config";
 
+// eslint-disable-next-line react/prop-types
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
-  const token = localStorage.getItem("token");
+  const [status, setStatus] = useState("checking");
 
-  if (!token) {
+  useEffect(() => {
+    let active = true;
+    axios
+      .get(`${API_BASE_URL}/users/profile/me`)
+      .then(() => active && setStatus("authenticated"))
+      .catch(() => active && setStatus("unauthenticated"));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (status === "checking") {
+    return null;
+  }
+  if (status === "unauthenticated") {
     return <Navigate to="/" replace state={{ from: location.pathname }} />;
   }
-
-  try {
-    const { exp } = jwtDecode(token);
-    if (!exp || exp * 1000 <= Date.now()) {
-      localStorage.removeItem("token");
-      return <Navigate to="/" replace state={{ from: location.pathname }} />;
-    }
-  } catch {
-    localStorage.removeItem("token");
-    return <Navigate to="/" replace state={{ from: location.pathname }} />;
-  }
-
   return children;
 };
 

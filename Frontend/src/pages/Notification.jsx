@@ -25,7 +25,7 @@ const Notifications = () => {
     setLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       const response = await axios.get(`${API_BASE_URL}/notifications`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -43,7 +43,7 @@ const Notifications = () => {
 
   const markAsRead = async (notificationId) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       await axios.put(
         `${API_BASE_URL}/notifications/${notificationId}/read`,
         {},

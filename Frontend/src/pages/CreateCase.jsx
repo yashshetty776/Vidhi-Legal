@@ -53,7 +53,7 @@ const CreateCase = () => {
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       await axios.post(`${API_BASE_URL}/cases/create_case`, {
         ...caseData,
         title: caseData.title.trim(),

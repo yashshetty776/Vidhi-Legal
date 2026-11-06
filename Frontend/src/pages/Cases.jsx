@@ -15,9 +15,9 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import jwtDecode from "jwt-decode";
 import Navbar from "../components/Navbar";
 import { API_BASE_URL } from "../config";
+import { gradients, colors } from "../design-tokens/colors";
 
 const Cases = () => {
   const [cases, setCases] = useState([]);
@@ -31,15 +31,9 @@ const Cases = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const decodedToken = jwtDecode(token);
-        setRole(decodedToken.role);
-      } catch {
-        setError("Your session is invalid. Please sign in again.");
-      }
-    }
+    axios.get(`${API_BASE_URL}/users/profile/me`)
+      .then((response) => setRole(response.data.role))
+      .catch(() => setError("Your session is invalid. Please sign in again."));
   }, []);
 
   useEffect(() => {
@@ -52,7 +46,7 @@ const Cases = () => {
   const fetchCases = async () => {
     setError("");
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       const response = await axios.get(`${API_BASE_URL}/cases/list_cases`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -73,7 +67,7 @@ const Cases = () => {
   const fetchMyCases = async () => {
     setMyCasesLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       const response = await axios.get(`${API_BASE_URL}/cases/user_cases/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -89,7 +83,7 @@ const Cases = () => {
     setActionCaseId(caseId);
     setError("");
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       await axios.put(`${API_BASE_URL}/cases/${caseId}/accept`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -105,7 +99,7 @@ const Cases = () => {
     setActionCaseId(caseId);
     setError("");
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       await axios.put(
         `${API_BASE_URL}/cases/${caseId}/status`,
         { status: newStatus },
@@ -130,7 +124,7 @@ const Cases = () => {
       <Container 
         sx={{ 
           mt: 4, 
-          background: 'linear-gradient(to bottom, #f5e1da, #e6c9a8)', // Light Brown to Peach Gradient
+          background: gradients.case,
           minHeight: '100vh', 
           py: 4, 
           borderRadius: 3 
@@ -141,7 +135,7 @@ const Cases = () => {
           gutterBottom 
           sx={{ 
             marginTop: 10, 
-            color: '#5a3e2b', // Deep brown for contrast
+            color: colors.text.primary,
             fontWeight: 'bold', 
             textAlign: 'center'
           }}

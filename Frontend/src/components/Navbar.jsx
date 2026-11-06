@@ -5,9 +5,9 @@ import {
 import { Menu as MenuIcon, Adb as AdbIcon, Notifications as NotificationsIcon, CheckCircle } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import jwtDecode from "jwt-decode";
 import dayjs from "dayjs";
 import { API_BASE_URL } from "../config";
+import { colors } from "../design-tokens/colors";
 
 const settings = ['Profile', 'Logout'];
 
@@ -22,22 +22,16 @@ function ResponsiveAppBar() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const decodedToken = jwtDecode(token);
-        setRole(decodedToken.role);
-      } catch (error) {
-        console.error("Invalid token:", error);
-      }
-    }
+    axios.get(`${API_BASE_URL}/users/profile/me`)
+      .then((response) => setRole(response.data.role))
+      .catch(() => setRole(null));
     fetchNotifications();
   }, []);
 
   const fetchNotifications = async () => {
     setNotificationError("");
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       const response = await axios.get(`${API_BASE_URL}/notifications?unread_only=true`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -51,7 +45,7 @@ function ResponsiveAppBar() {
 
   const markAsRead = async (notificationId) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       await axios.put(`${API_BASE_URL}/notifications/${notificationId}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -62,7 +56,7 @@ function ResponsiveAppBar() {
   };
 
   return (
-    <AppBar position="fixed" sx={{ backgroundColor: '#000' }}>
+    <AppBar position="fixed" sx={{ backgroundColor: colors.surface.dark }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           <AdbIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
@@ -175,8 +169,7 @@ function ResponsiveAppBar() {
               {settings.map((setting) => (
                 <MenuItem key={setting} onClick={() => {
                   if (setting === 'Logout') {
-                    localStorage.removeItem("token");
-                    navigate("/");
+                    axios.post(`${API_BASE_URL}/auth/logout`).finally(() => navigate("/"));
                   } else {
                     navigate("/profile");
                   }

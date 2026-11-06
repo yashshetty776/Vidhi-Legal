@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Alert, Container, Typography, Card, CardContent, Grid, Avatar, Box, CircularProgress } from "@mui/material";
 import axios from "axios";
-import jwtDecode from "jwt-decode";
 import Navbar from "../components/Navbar";
 import { API_BASE_URL } from "../config";
 
@@ -12,26 +11,19 @@ const Lawyers = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const decodedToken = jwtDecode(token);
-        setRole(decodedToken.role);
-
-        if (decodedToken.role === "client") {
-          fetchLawyers();
-        }
-      } catch (error) {
-        console.error("Invalid token:", error);
-      }
-    }
+    axios.get(`${API_BASE_URL}/users/profile/me`)
+      .then((response) => {
+        setRole(response.data.role);
+        if (response.data.role === "client") fetchLawyers();
+      })
+      .catch(() => setError("Your session is invalid. Please sign in again."));
   }, []);
 
   const fetchLawyers = async () => {
     setLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       const response = await axios.get(`${API_BASE_URL}/users/lawyers`, {
         headers: { Authorization: `Bearer ${token}` },
       });

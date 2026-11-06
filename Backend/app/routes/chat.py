@@ -46,7 +46,7 @@ async def case_chat(websocket: WebSocket, case_id: str) -> None:
         await close_connection(websocket, "Invalid case ID")
         return
 
-    token = get_websocket_token(websocket)
+    token = websocket.cookies.get("access_token") or get_websocket_token(websocket)
     username = get_username_from_token(token)
     if username is None:
         await close_connection(websocket, "Authentication required")

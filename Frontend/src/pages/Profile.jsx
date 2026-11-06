@@ -22,7 +22,7 @@ const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const token = localStorage.getItem("token");
+  const token = null;
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -44,7 +44,7 @@ const Profile = () => {
     };
 
     loadProfile();
-  }, [token]);
+  }, []);
 
   const saveProfile = async (event) => {
     event.preventDefault();

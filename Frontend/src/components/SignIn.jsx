@@ -14,6 +14,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
+import { colors } from "../design-tokens/colors";
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -35,17 +36,11 @@ const SignIn = () => {
       formData.append('username', username.trim());
       formData.append('password', password);
 
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, formData, {
+      await axios.post(`${API_BASE_URL}/auth/login`, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
-
-      // Extract token
-      const token = response.data.access_token;
-
-      // Store token
-      localStorage.setItem("token", token);
 
       navigate('/home');
     } catch (error) {
@@ -65,7 +60,7 @@ const SignIn = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#e3f2fd',
+        backgroundColor: colors.brand.primary,
         padding: 2,
       }}
     >

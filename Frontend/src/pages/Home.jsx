@@ -1,8 +1,8 @@
-import React from 'react';
-import { Container, Box, Typography, Paper, CardMedia, IconButton, Grid, Link } from '@mui/material';
+import { Container, Box, Typography, Paper, CardMedia, Grid, Link } from '@mui/material';
 import Carousel from 'react-material-ui-carousel';
 import { ArrowBackIos, ArrowForwardIos } from '@mui/icons-material';
 import { keyframes } from '@mui/system';
+import { colors, gradients } from '../design-tokens/colors';
 
 const Home = () => {
     // Define animations
@@ -44,7 +44,7 @@ const Home = () => {
             sx={{ 
                 minHeight: 'calc(100vh - 64px - 64px)',
                 pt: 2,
-                background: 'linear-gradient(135deg,rgb(19, 22, 1) 0%,rgb(55, 55, 67) 100%)',
+                background: gradients.home,
                 pb: 8,
                 position: 'relative',
                 '&::before': {
@@ -65,7 +65,7 @@ const Home = () => {
                 variant="h4"
                 align="center"
                 sx={{
-                    color: '#ffffff',
+                    color: colors.text.inverse,
                     mb: 4,
                     mt: 2,
                     fontWeight: 600,
@@ -73,7 +73,7 @@ const Home = () => {
                     animation: `${fadeIn} 1s ease-out`,
                     textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
                     '& span': {
-                        color: '#90caf9'
+                        color: colors.brand.primary
                     }
                 }}
             >

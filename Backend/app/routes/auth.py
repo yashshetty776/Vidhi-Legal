@@ -2,8 +2,10 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Form, HTTPException, status
 from fastapi.responses import JSONResponse
+from fastapi import Response
 from app.database import init_db
 from app.config import ALLOW_PUBLIC_LAWYER_REGISTRATION
+from app.config import ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_SECURE
 from app.models.user import User
 from app.schemas.auth import RegisterUser
 from app.services.auth_service import (
@@ -41,7 +43,16 @@ async def register_user(user_data: RegisterUser):
     token = create_access_token(
         {"sub": user.username, "user_id": str(user.id), "role": user.role}
     )
-    return JSONResponse(status_code=201, content={"token": token})
+    response = JSONResponse(status_code=201, content={"message": "Registration successful"})
+    response.set_cookie(
+        "access_token",
+        token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    return response
 
 
 @router.post("/auth/login")
@@ -59,4 +70,18 @@ async def login(username: str = Form(...), password: str = Form(...)):
         data={"sub": user.username, "user_id": str(user.id), "role": user.role},
         expires_delta=timedelta(minutes=30),
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    response = JSONResponse({"message": "Login successful"})
+    response.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    return response
+
+
+@router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response):
+    response.delete_cookie("access_token")

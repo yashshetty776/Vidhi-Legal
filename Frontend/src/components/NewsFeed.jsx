@@ -25,7 +25,7 @@ const NewsFeed = () => {
     setLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
+      const token = null;
       const response = await axios.get(`${API_BASE_URL}/news/scrape`, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 45000,

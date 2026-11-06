@@ -15,6 +15,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
+import { colors } from "../design-tokens/colors";
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -65,14 +66,8 @@ const SignUp = () => {
           location: location.trim()
         };
   
-        const response = await axios.post(`${API_BASE_URL}/register`, payload);
+        await axios.post(`${API_BASE_URL}/register`, payload);
         
-        // Extract token
-        const token = response.data.token;
-  
-        // Store token
-        localStorage.setItem("token", token);
-  
         navigate('/home', { replace: true });
     } catch (error) {
       const detail = error.response?.data?.detail;
@@ -92,7 +87,7 @@ const SignUp = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#e3f2fd',
+        backgroundColor: colors.brand.primary,
         padding: 2,
       }}
     >

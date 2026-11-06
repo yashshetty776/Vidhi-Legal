@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -9,7 +9,7 @@ from app.config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
 from app.models.user import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 def get_username_from_token(token: str | None) -> str | None:
@@ -46,7 +46,14 @@ def create_access_token(
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(
+    authorization: str | None = Header(default=None),
+    access_token: str | None = Cookie(default=None),
+    bearer_token: str | None = Depends(oauth2_scheme),
+):
+    token = access_token or bearer_token
+    if token is None and authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
     username = get_username_from_token(token)
     if username is None:
         raise HTTPException(

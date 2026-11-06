@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import axios from "axios";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import jwtDecode from "jwt-decode";
-import { WS_BASE_URL } from "../config";
+import { API_BASE_URL, WS_BASE_URL } from "../config";
 
 const ChatApp = () => {
   const { caseId } = useParams();
@@ -11,20 +11,19 @@ const ChatApp = () => {
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("Connecting...");
   const [error, setError] = useState("");
-  const token = localStorage.getItem("token");
-  const username = token ? jwtDecode(token).sub : "";
+  const [username, setUsername] = useState("");
 
   useEffect(() => {
-    if (!caseId || !token) {
-      setError("A case and a valid login session are required.");
+    if (!caseId) {
+      setError("A case is required.");
       setStatus("Unavailable");
       return undefined;
     }
 
-    const socket = new WebSocket(
-      `${WS_BASE_URL}/ws/cases/${caseId}`,
-      ["bearer", token]
-    );
+    axios.get(`${API_BASE_URL}/users/profile/me`)
+      .then((response) => setUsername(response.data.username))
+      .catch(() => setError("Unable to load your session."));
+    const socket = new WebSocket(`${WS_BASE_URL}/ws/cases/${caseId}`);
     let active = true;
     socketRef.current = socket;
 
@@ -79,7 +78,7 @@ const ChatApp = () => {
         socket.close(1000, "Chat view closed");
       }
     };
-  }, [caseId, token]);
+  }, [caseId]);
 
   const sendMessage = () => {
     const content = message.trim();
