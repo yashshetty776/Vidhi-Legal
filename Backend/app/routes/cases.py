@@ -1,131 +1,154 @@
-from fastapi import APIRouter, Depends, HTTPException
-from app.models.case import Case, CaseCreate, CaseUpdate
-from app.models.user import User
-from app.database import init_db
-from app.services.auth_service import get_current_user
-from app.routes.notification import create_notification  # ✅ Import notification service
 from typing import List
-from datetime import datetime
+
+from bson import ObjectId
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from app.database import init_db
+from app.models.case import Case, CaseCreate, CaseStatus, CaseUpdate
+from app.models.user import User
+from app.routes.notification import create_notification
+from app.services.auth_service import get_current_user
 
 router = APIRouter()
 
-#  Create a new case (Only Clients)
-@router.post("/create_case", response_model=dict)
-async def create_case(case_data: CaseCreate, current_user: User = Depends(get_current_user)):
-    await init_db()
 
+async def get_case_or_404(case_id: str) -> Case:
+    if not ObjectId.is_valid(case_id):
+        raise HTTPException(status_code=400, detail="Invalid case ID")
+    case = await Case.get(case_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail="Case not found")
+    return case
+
+
+def ensure_participant(case: Case, username: str) -> None:
+    if username not in (case.client_username, case.lawyer_username):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+
+@router.post("/create_case", response_model=dict, status_code=status.HTTP_201_CREATED)
+async def create_case(
+    case_data: CaseCreate,
+    current_user: User = Depends(get_current_user),
+):
+    await init_db()
     if current_user.role != "client":
         raise HTTPException(status_code=403, detail="Only clients can create cases")
 
-    case = Case(**case_data.dict(), client_username=current_user.username, status="pending", created_at=datetime.utcnow())
+    case = Case(
+        **case_data.model_dump(),
+        client_username=current_user.username,
+        status=CaseStatus.pending,
+    )
     await case.insert()
 
-    # ✅ Notify all lawyers about the new case
     lawyers = await User.find(User.role == "lawyer").to_list()
     for lawyer in lawyers:
         await create_notification(
             recipient=lawyer.username,
             message=f"New case posted: {case.title}",
             case_id=str(case.id),
-            notification_type="new_case"
+            notification_type="new_case",
         )
 
     return {"message": "Case created successfully", "case": case.to_dict()}
 
-#  List all cases (Only Lawyers)
+
 @router.get("/list_cases", response_model=List[dict])
 async def list_cases(current_user: User = Depends(get_current_user)):
     await init_db()
-
     if current_user.role == "client":
         cases = await Case.find(Case.client_username == current_user.username).to_list()
     elif current_user.role == "lawyer":
-        cases = await Case.find(Case.status == "pending").to_list()
+        cases = await Case.find(Case.status == CaseStatus.pending).to_list()
     else:
         raise HTTPException(status_code=403, detail="Access denied")
-
     return [case.to_dict() for case in cases]
 
-#  Get case details (Only Clients & Assigned Lawyers)
+
+@router.get("/user_cases/me", response_model=List[dict])
+async def my_cases(current_user: User = Depends(get_current_user)):
+    if current_user.role == "client":
+        cases = await Case.find(Case.client_username == current_user.username).to_list()
+    elif current_user.role == "lawyer":
+        cases = await Case.find(Case.lawyer_username == current_user.username).to_list()
+    else:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return [case.to_dict() for case in cases]
+
+
 @router.get("/{case_id}", response_model=dict)
 async def get_case(case_id: str, current_user: User = Depends(get_current_user)):
     await init_db()
-    case = await Case.get(case_id)
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-
-    if current_user.username not in [case.client_username, case.lawyer_username]:
-        raise HTTPException(status_code=403, detail="Access denied")
-
+    case = await get_case_or_404(case_id)
+    ensure_participant(case, current_user.username)
     return case.to_dict()
 
-#  Accept a case (Only Lawyers)
+
 @router.put("/{case_id}/accept", response_model=dict)
 async def accept_case(case_id: str, current_user: User = Depends(get_current_user)):
     await init_db()
-
     if current_user.role != "lawyer":
         raise HTTPException(status_code=403, detail="Only lawyers can accept cases")
 
-    case = await Case.get(case_id)
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-
-    if case.lawyer_username:
-        raise HTTPException(status_code=400, detail="Case already assigned to a lawyer")
+    case = await get_case_or_404(case_id)
+    if case.status != CaseStatus.pending or case.lawyer_username:
+        raise HTTPException(status_code=409, detail="Case is no longer available")
 
     case.lawyer_username = current_user.username
-    case.status = "accepted"
+    case.status = CaseStatus.accepted
     await case.save()
-
-    # ✅ Notify the client that a lawyer accepted their case
     await create_notification(
         recipient=case.client_username,
         message=f"Your case '{case.title}' has been accepted by {current_user.username}.",
         case_id=str(case.id),
-        notification_type="case_accepted"
+        notification_type="case_accepted",
     )
-
     return {"message": "Case accepted successfully", "case": case.to_dict()}
 
-# Update case status (Only Assigned Lawyer)
+
 @router.put("/{case_id}/status", response_model=dict)
-async def update_case_status(case_id: str, update_data: CaseUpdate, current_user: User = Depends(get_current_user)):
+async def update_case_status(
+    case_id: str,
+    update_data: CaseUpdate,
+    current_user: User = Depends(get_current_user),
+):
     await init_db()
-    case = await Case.get(case_id)
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-
+    case = await get_case_or_404(case_id)
     if case.lawyer_username != current_user.username:
-        raise HTTPException(status_code=403, detail="Only the assigned lawyer can update status")
-
-    if update_data.status:
-        case.status = update_data.status
-        await case.save()
-
-        # ✅ Notify the client that the lawyer updated the case status
-        await create_notification(
-            recipient=case.client_username,
-            message=f"Your case '{case.title}' has been updated to '{case.status}' by {current_user.username}.",
-            case_id=str(case.id),
-            notification_type="case_update"
+        raise HTTPException(
+            status_code=403,
+            detail="Only the assigned lawyer can update status",
+        )
+    if case.status == CaseStatus.closed:
+        raise HTTPException(status_code=409, detail="Closed cases cannot be updated")
+    allowed_transitions = {
+        CaseStatus.accepted: {CaseStatus.in_progress, CaseStatus.completed},
+        CaseStatus.in_progress: {CaseStatus.completed},
+        CaseStatus.completed: {CaseStatus.closed},
+    }
+    if update_data.status not in allowed_transitions.get(case.status, set()):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot change status from {case.status.value} to {update_data.status.value}",
         )
 
+    case.status = update_data.status
+    await case.save()
+    await create_notification(
+        recipient=case.client_username,
+        message=f"Your case '{case.title}' is now {case.status.value}.",
+        case_id=str(case.id),
+        notification_type="case_update",
+    )
     return {"message": "Case status updated", "case": case.to_dict()}
 
-@router.get("/user_cases/{username}", response_model=List[dict])
-async def user_cases(username : str, current_user: User = Depends(get_current_user)):
-    """Fetch cases for the current user based on their role."""
 
+@router.get("/user_cases/{username}", response_model=List[dict])
+async def user_cases(
+    username: str,
+    current_user: User = Depends(get_current_user),
+):
     if username != current_user.username:
         raise HTTPException(status_code=403, detail="Access denied")
-
-    if current_user.role == "client":
-        cases = await Case.find(Case.client_username == username).to_list()
-    elif current_user.role == "lawyer":
-        cases = await Case.find(Case.lawyer_username == username).to_list()
-    else:
-        raise HTTPException(status_code=403, detail="Access denied")
-
-    # Convert ObjectId to string before returning
-    return [{**case.dict(), "id": str(case.id)} for case in cases]
+    return await my_cases(current_user)

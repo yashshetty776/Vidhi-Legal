@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Container,
   Typography,
@@ -9,10 +9,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  Alert,
   MenuItem,
   Select,
-  FormControl,
-  InputLabel,
 } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +24,9 @@ const Cases = () => {
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [myCasesLoading, setMyCasesLoading] = useState(false);
+  const [actionCaseId, setActionCaseId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,9 +35,8 @@ const Cases = () => {
       try {
         const decodedToken = jwtDecode(token);
         setRole(decodedToken.role);
-        console.log("Role:", decodedToken.role);
-      } catch (error) {
-        console.error("Invalid token:", error);
+      } catch {
+        setError("Your session is invalid. Please sign in again.");
       }
     }
   }, []);
@@ -44,9 +45,11 @@ const Cases = () => {
     if (role) {
       fetchCases();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
   const fetchCases = async () => {
+    setError("");
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get("http://localhost:8000/cases/list_cases", {
@@ -54,58 +57,64 @@ const Cases = () => {
       });
 
       const allCases = response.data;
-      const user = jwtDecode(token);
-
       if (role === "lawyer") {
         setCases(allCases.filter((c) => c.status === "pending"));
       } else {
         setCases(allCases);
       }
     } catch (error) {
-      console.error("Error fetching cases:", error.response?.data?.detail || error.message);
+      setError(error.response?.data?.detail || "Unable to load cases.");
     } finally {
       setLoading(false);
     }
   };
 
   const fetchMyCases = async () => {
+    setMyCasesLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const decoded = jwtDecode(token);
-      const user = decoded.sub;
-      console.log("User:", user);
-      const response = await axios.get(`http://localhost:8000/cases/user_cases/${user}`, {
+      const response = await axios.get("http://localhost:8000/cases/user_cases/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMyCases(response.data);
     } catch (error) {
-      console.error("Error fetching my cases:", error.response?.data?.detail || error.message);
+      setError(error.response?.data?.detail || "Unable to load your cases.");
+    } finally {
+      setMyCasesLoading(false);
     }
   };
 
   const acceptCase = async (caseId) => {
+    setActionCaseId(caseId);
+    setError("");
     try {
       const token = localStorage.getItem("token");
       await axios.put(`http://localhost:8000/cases/${caseId}/accept`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      fetchCases();
+      await fetchCases();
     } catch (error) {
-      console.error("Error accepting case:", error.response?.data?.detail || error.message);
+      setError(error.response?.data?.detail || "Unable to accept this case.");
+    } finally {
+      setActionCaseId(null);
     }
   };
 
   const updateCaseStatus = async (caseId, newStatus) => {
+    setActionCaseId(caseId);
+    setError("");
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:8000/cases/${caseId}/update_status`,
+        `http://localhost:8000/cases/${caseId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      fetchMyCases();
+      await fetchMyCases();
     } catch (error) {
-      console.error("Error updating case status:", error.response?.data?.detail || error.message);
+      setError(error.response?.data?.detail || "Unable to update case status.");
+    } finally {
+      setActionCaseId(null);
     }
   };
 
@@ -138,6 +147,7 @@ const Cases = () => {
         >
           {role === "client" ? "My Cases" : "Available Cases"}
         </Typography>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         {role === "lawyer" && (
           <Button
@@ -209,8 +219,9 @@ const Cases = () => {
                       "&:hover": { backgroundColor: "#8C5432" } 
                     }}
                     onClick={() => acceptCase(caseItem.id)}
+                    disabled={actionCaseId === caseItem.id}
                   >
-                    Take Case
+                    {actionCaseId === caseItem.id ? "Accepting..." : "Take Case"}
                   </Button>
                 )}
 
@@ -243,7 +254,7 @@ const Cases = () => {
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
           <DialogTitle>My Cases</DialogTitle>
           <DialogContent>
-            {myCases.length > 0 ? (
+            {myCasesLoading ? <CircularProgress sx={{ display: "block", margin: "20px auto" }} /> : myCases.length > 0 ? (
               myCases.map((caseItem) => (
                 <Card 
                   key={caseItem.id} 
@@ -267,17 +278,20 @@ const Cases = () => {
                     <Typography variant="subtitle2" sx={{ color: "#704832", fontStyle: "italic" }}>
                       Status: {caseItem.status}
                     </Typography>
-                    <FormControl fullWidth sx={{ mt: 2 }}>
-                      {/* <InputLabel>Status</InputLabel>
+                    {role === "lawyer" && caseItem.status !== "closed" && (
                       <Select
+                        fullWidth
                         value={caseItem.status}
-                        onChange={(e) => updateCaseStatus(caseItem.id, e.target.value)}
+                        onChange={(event) => updateCaseStatus(caseItem.id, event.target.value)}
+                        disabled={actionCaseId === caseItem.id}
+                        sx={{ mt: 2 }}
                       >
-                        <MenuItem value="pending">Pending</MenuItem>
+                        <MenuItem value="accepted">Accepted</MenuItem>
                         <MenuItem value="in_progress">In Progress</MenuItem>
                         <MenuItem value="completed">Completed</MenuItem>
-                      </Select> */}
-                    </FormControl>
+                        <MenuItem value="closed">Closed</MenuItem>
+                      </Select>
+                    )}
                     <Button
                       variant="contained"
                       sx={{ 

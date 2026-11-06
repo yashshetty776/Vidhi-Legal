@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Container, Typography, Card, CardContent, Grid, Avatar, Box } from "@mui/material";
+import { useState, useEffect } from "react";
+import { Alert, Container, Typography, Card, CardContent, Grid, Avatar, Box, CircularProgress } from "@mui/material";
 import axios from "axios";
 import jwtDecode from "jwt-decode";
 import Navbar from "../components/Navbar";
@@ -7,6 +7,8 @@ import Navbar from "../components/Navbar";
 const Lawyers = () => {
   const [lawyers, setLawyers] = useState([]);
   const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -25,6 +27,8 @@ const Lawyers = () => {
   }, []);
 
   const fetchLawyers = async () => {
+    setLoading(true);
+    setError("");
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get("http://localhost:8000/users/lawyers", {
@@ -32,7 +36,9 @@ const Lawyers = () => {
       });
       setLawyers(response.data);
     } catch (error) {
-      console.error("Error fetching lawyers:", error.response?.data?.detail || error.message);
+      setError(error.response?.data?.detail || "Unable to load the lawyer directory.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,6 +51,8 @@ const Lawyers = () => {
       <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", textAlign: "center",marginTop: 5 }}>
         Available Lawyers
       </Typography>
+      {loading && <CircularProgress sx={{ display: "block", mx: "auto" }} />}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {role === "client" ? (
         lawyers.length > 0 ? (

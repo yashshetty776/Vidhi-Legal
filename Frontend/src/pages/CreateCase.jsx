@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Container, TextField, Button, Typography, Alert, MenuItem, Select, FormControl, InputLabel } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +12,7 @@ const CreateCase = () => {
   });
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   // ✅ Predefined case categories
@@ -44,17 +45,30 @@ const CreateCase = () => {
     e.preventDefault();
     setError(null);
     setSuccessMessage(null);
+    if (caseData.title.trim().length < 5 || caseData.description.trim().length < 20 || !caseData.category) {
+      setError("Enter a title of at least 5 characters, a description of at least 20 characters, and a category.");
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.post("http://localhost:8000/cases/create_case", caseData, {
+      await axios.post("http://localhost:8000/cases/create_case", {
+        ...caseData,
+        title: caseData.title.trim(),
+        description: caseData.description.trim(),
+        category: caseData.category.trim(),
+      }, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       setSuccessMessage("Case created successfully!");
-      setTimeout(() => navigate("/cases"), 2000); // Redirect after 2 sec
+      setTimeout(() => navigate("/cases"), 1200);
     } catch (error) {
-      setError(error.response?.data?.detail || "Error creating case");
+      const detail = error.response?.data?.detail;
+      setError(Array.isArray(detail) ? detail.map((item) => item.msg).join(", ") : detail || "Error creating case");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -110,8 +124,8 @@ const CreateCase = () => {
           </Select>
         </FormControl>
 
-        <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
-          Submit Case
+        <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }} disabled={isSubmitting}>
+          {isSubmitting ? "Submitting..." : "Submit Case"}
         </Button>
       </form>
     </Container>
