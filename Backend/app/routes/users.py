@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends
-from models.user import User, UserUpdate
-from services.auth_service import get_current_user
-from database import init_db
+from app.models.user import User, UserUpdate
+from app.services.auth_service import get_current_user
+from app.database import init_db
 from typing import List
-from models.case import Case
+from app.models.case import Case
 
 router = APIRouter()
 

@@ -3,12 +3,14 @@ from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from fastapi import HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer
-from database import init_db
-from models.user import User  # Import the User model
+from app.database import init_db
+from app.models.user import User  # Import the User model
 from dotenv import load_dotenv
 
 import os
-load_dotenv(dotenv_path="config/.env")
+from pathlib import Path
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env.local")
 
 
 
@@ -20,6 +22,18 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+
+def get_username_from_token(token: str | None) -> str | None:
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  # type: ignore
+    except JWTError:
+        return None
+
+    username = payload.get("sub")
+    return username if isinstance(username, str) else None
 
 def hash_password(password: str) -> str:
     """Hashes a password using bcrypt."""
@@ -58,21 +72,13 @@ def verify_token(token: str = Depends(oauth2_scheme)):
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]) # type: ignore
-        username: str = payload.get("sub") # type: ignore
-        if not isinstance(username, str):
-            raise HTTPException(status_code=401, detail="Invalid token")
-        if username is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        
-        await init_db()  # Ensure DB is initialized before querying
-        user = await User.find_one(User.username == username)  # Fetch full user object
-        
-        if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        return user  # Return full User object, not just username
-
-    except JWTError:
+    username = get_username_from_token(token)
+    if username is None:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+    await init_db()
+    user = await User.find_one(User.username == username)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user

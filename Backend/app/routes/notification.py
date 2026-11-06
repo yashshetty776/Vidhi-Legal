@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from datetime import datetime, timezone
-from models.notification import Notification  # Ensure correct import path
-from models.user import User
-from services.auth_service import get_current_user
-from database import init_db  # Ensure DB connection
+from app.models.notification import Notification  # Ensure correct import path
+from app.models.user import User
+from app.services.auth_service import get_current_user
+from app.database import init_db  # Ensure DB connection
 
 router = APIRouter()
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Form
-from models.user import User
-from services.auth_service import hash_password, verify_password, create_access_token
-from database import init_db
+from app.models.user import User
+from app.services.auth_service import hash_password, verify_password, create_access_token
+from app.database import init_db
 from pydantic import BaseModel
 from datetime import timedelta
 from fastapi.responses import JSONResponse
@@ -43,7 +43,9 @@ async def register_user(user_data: RegisterUser):
     await user.insert()
 
     # ✅ Include role in token
-    token = create_access_token({"user_id": str(user.id), "username": user.username, "role": role})
+    token = create_access_token(
+        {"sub": user.username, "user_id": str(user.id), "role": role}
+    )
 
     return JSONResponse(content={"token": token})
 

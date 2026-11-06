@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from utils.scraper import scrape_news
-from models.user import User  # Assuming you have a User model for authentication
-from services.auth_service import get_current_user
+from app.utils.scraper import scrape_news
+from app.models.user import User  # Assuming you have a User model for authentication
+from app.services.auth_service import get_current_user
 
 router = APIRouter(
     prefix="/news",

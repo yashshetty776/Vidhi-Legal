@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
-from models.user import User
-from services.auth_service import get_current_user
-from database import init_db
+from app.models.user import User
+from app.services.auth_service import get_current_user
+from app.database import init_db
 
 router = APIRouter()
 
@@ -15,4 +15,3 @@ async def get_home(current_user: User = Depends(get_current_user)):
     }
     
     return user_data
-

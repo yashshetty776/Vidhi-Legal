@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from models.case import Case, CaseCreate, CaseUpdate
-from models.user import User
-from database import init_db
-from services.auth_service import get_current_user
-from routes.notification import create_notification  # ✅ Import notification service
+from app.models.case import Case, CaseCreate, CaseUpdate
+from app.models.user import User
+from app.database import init_db
+from app.services.auth_service import get_current_user
+from app.routes.notification import create_notification  # ✅ Import notification service
 from typing import List
 from datetime import datetime
 

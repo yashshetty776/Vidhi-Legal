@@ -222,7 +222,7 @@ const Cases = () => {
                       backgroundColor: "#A6643E", // Richer brown tone
                       "&:hover": { backgroundColor: "#8C5432" } 
                     }}
-                    onClick={() => navigate("/chat")}
+                    onClick={() => navigate(`/chat/${caseItem.id}`)}
                   >
                     Chat Now
                   </Button>
@@ -285,7 +285,7 @@ const Cases = () => {
                         backgroundColor: "#A6643E", // Richer brown tone
                         "&:hover": { backgroundColor: "#8C5432" } 
                       }}
-                      onClick={() => navigate("/chat")}
+                      onClick={() => navigate(`/chat/${caseItem.id}`)}
                     >
                       Chat Now
                     </Button>

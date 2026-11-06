@@ -29,7 +29,7 @@ function App() {
       <Route path="/profile" element={<Profile />} />
       <Route path="/news" element={<NewsFeed />} />
       <Route path="/notification" element={<Notification />} />
-      <Route path="/chat" element={<ChatApp />} />
+      <Route path="/chat/:caseId" element={<ChatApp />} />
       {/* Protected Routes (With Navbar) */}
       <Route 
         path="/home" 
