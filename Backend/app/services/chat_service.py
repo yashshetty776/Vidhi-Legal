@@ -10,8 +10,14 @@ class ChatConnectionManager:
             lambda: defaultdict(set)
         )
 
-    async def connect(self, case_id: str, username: str, websocket: WebSocket) -> None:
-        await websocket.accept()
+    async def connect(
+        self,
+        case_id: str,
+        username: str,
+        websocket: WebSocket,
+        subprotocol: str = "bearer",
+    ) -> None:
+        await websocket.accept(subprotocol=subprotocol)
         self._connections[case_id][username].add(websocket)
 
     def disconnect(self, case_id: str, username: str, websocket: WebSocket) -> None:

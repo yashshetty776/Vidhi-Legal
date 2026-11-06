@@ -28,7 +28,7 @@ const NewsFeed = () => {
       const token = localStorage.getItem("token");
       const response = await axios.get(`${API_BASE_URL}/news/scrape`, {
         headers: { Authorization: `Bearer ${token}` },
-        timeout: 15000,
+        timeout: 45000,
       });
       setNews(Array.isArray(response.data.news) ? response.data.news : []);
     } catch (requestError) {

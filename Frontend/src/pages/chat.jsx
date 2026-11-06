@@ -22,7 +22,8 @@ const ChatApp = () => {
     }
 
     const socket = new WebSocket(
-      `${WS_BASE_URL}/ws/cases/${caseId}?token=${encodeURIComponent(token)}`
+      `${WS_BASE_URL}/ws/cases/${caseId}`,
+      ["bearer", token]
     );
     let active = true;
     socketRef.current = socket;

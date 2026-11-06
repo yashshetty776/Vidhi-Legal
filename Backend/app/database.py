@@ -1,24 +1,15 @@
 import asyncio
-import os
-from pathlib import Path
-
 from beanie import init_beanie  # type: ignore
-from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from app.config import DATABASE_NAME, MONGO_URI
 from app.models.case import Case
 from app.models.message import ChatMessage
 from app.models.notification import Notification
 from app.models.user import User
 
-load_dotenv(dotenv_path=Path(__file__).with_name(".env.local"))
-
-MONGO_URI = os.getenv("MONGO_URI")
-if not MONGO_URI:
-    raise RuntimeError("MONGO_URI is not configured")
-
 _client = AsyncIOMotorClient(MONGO_URI)
-_database = _client.get_database("Legal")
+_database = _client.get_database(DATABASE_NAME)
 _initialization_lock = asyncio.Lock()
 _initialized = False
 

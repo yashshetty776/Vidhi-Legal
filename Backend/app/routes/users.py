@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.database import init_db
 from app.models.case import Case
-from app.models.user import User, UserUpdate
+from app.models.user import User
+from app.schemas.user import UserUpdate
 from app.services.auth_service import get_current_user
 
 router = APIRouter()

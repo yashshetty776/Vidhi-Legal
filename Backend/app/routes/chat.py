@@ -5,6 +5,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field, ValidationError
 
 from app.database import init_db
+from app.config import ALLOWED_ORIGINS
 from app.models.case import Case
 from app.models.message import ChatMessage
 from app.services.auth_service import get_username_from_token
@@ -22,15 +23,30 @@ async def close_connection(websocket: WebSocket, reason: str) -> None:
     await websocket.close(code=1008, reason=reason)
 
 
+def get_websocket_token(websocket: WebSocket) -> str | None:
+    protocols = [
+        protocol.strip()
+        for protocol in websocket.headers.get("sec-websocket-protocol", "").split(",")
+    ]
+    if len(protocols) == 2 and protocols[0] == "bearer":
+        return protocols[1]
+    return None
+
+
 @router.websocket("/ws/cases/{case_id}")
 async def case_chat(websocket: WebSocket, case_id: str) -> None:
     await init_db()
+
+    origin = websocket.headers.get("origin")
+    if origin not in ALLOWED_ORIGINS:
+        await close_connection(websocket, "Origin not allowed")
+        return
 
     if not ObjectId.is_valid(case_id):
         await close_connection(websocket, "Invalid case ID")
         return
 
-    token = websocket.query_params.get("token")
+    token = get_websocket_token(websocket)
     username = get_username_from_token(token)
     if username is None:
         await close_connection(websocket, "Authentication required")
@@ -49,7 +65,7 @@ async def case_chat(websocket: WebSocket, case_id: str) -> None:
         await close_connection(websocket, "Chat access denied")
         return
 
-    await connection_manager.connect(case_id, username, websocket)
+    await connection_manager.connect(case_id, username, websocket, "bearer")
     try:
         previous_messages = (
             await ChatMessage.find(ChatMessage.case_id == case_id)

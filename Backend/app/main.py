@@ -1,9 +1,11 @@
 import logging
+import asyncio
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from app.config import ALLOWED_ORIGINS
 from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
 from app.routes.home import router as home_router
@@ -11,9 +13,22 @@ from app.routes.cases import router as cases_router
 from app.routes.news_scraper import router as news_scraper_router
 from app.routes.notification import router as notification_router
 from app.routes.chat import router as chat_router
+from app.utils.scraper import scrape_news
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
+
+
+async def warm_news_cache() -> None:
+    try:
+        await asyncio.to_thread(scrape_news)
+    except RuntimeError:
+        logger.warning("Initial legal news cache warm-up failed", exc_info=True)
+
+
+@app.on_event("startup")
+async def start_background_tasks() -> None:
+    asyncio.create_task(warm_news_cache())
 
 
 @app.exception_handler(HTTPException)
@@ -53,10 +68,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

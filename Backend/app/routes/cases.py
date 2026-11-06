@@ -4,9 +4,10 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.database import init_db
-from app.models.case import Case, CaseCreate, CaseStatus, CaseUpdate
+from app.models.case import Case
 from app.models.user import User
 from app.routes.notification import create_notification
+from app.schemas.case import CaseCreate, CaseStatus, CaseUpdate
 from app.services.auth_service import get_current_user
 
 router = APIRouter()

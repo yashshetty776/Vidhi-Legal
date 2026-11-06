@@ -7,8 +7,6 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
 URL = "https://www.barandbench.com/collection/top-stories"
 PAGE_LOAD_TIMEOUT_SECONDS = 15
@@ -19,20 +17,11 @@ MAX_ARTICLES = 12
 _cache_lock = threading.Lock()
 _cached_news: list[dict[str, str | None]] = []
 _cached_at = 0.0
-_driver_lock = threading.Lock()
-_driver_path: str | None = None
+_scrape_lock = threading.Lock()
 
 
 def clean_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
-
-
-def _get_driver_path() -> str:
-    global _driver_path
-    with _driver_lock:
-        if _driver_path is None:
-            _driver_path = ChromeDriverManager().install()
-        return _driver_path
 
 
 def _create_driver() -> webdriver.Chrome:
@@ -47,10 +36,7 @@ def _create_driver() -> webdriver.Chrome:
         "--user-agent=Vidhi/1.0 (+legal-news-reader; compatible; Chrome)"
     )
 
-    driver = webdriver.Chrome(
-        service=Service(_get_driver_path()),
-        options=options,
-    )
+    driver = webdriver.Chrome(options=options)
     driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT_SECONDS)
     driver.set_script_timeout(SCRIPT_TIMEOUT_SECONDS)
     return driver
@@ -104,19 +90,33 @@ def scrape_news() -> list[dict[str, str | None]]:
         if now - _cached_at < CACHE_TTL_SECONDS:
             return list(_cached_news)
 
-    driver = _create_driver()
-    try:
-        try:
-            driver.get(URL)
-        except TimeoutException:
-            driver.execute_script("window.stop();")
-        news = _extract_news(driver.page_source)
-    except WebDriverException as error:
-        raise RuntimeError("The legal news source could not be loaded") from error
-    finally:
-        driver.quit()
+    with _scrape_lock:
+        with _cache_lock:
+            if time.monotonic() - _cached_at < CACHE_TTL_SECONDS:
+                return list(_cached_news)
 
+        try:
+            driver = _create_driver()
+            try:
+                driver.get(URL)
+            except TimeoutException:
+                driver.execute_script("window.stop();")
+            news = _extract_news(driver.page_source)
+        except WebDriverException as error:
+            with _cache_lock:
+                if _cached_news:
+                    return list(_cached_news)
+            raise RuntimeError("The legal news source could not be loaded") from error
+        finally:
+            if "driver" in locals():
+                driver.quit()
+
+        with _cache_lock:
+            _cached_news = news
+            _cached_at = time.monotonic()
+        return list(news)
+
+
+def has_fresh_cache() -> bool:
     with _cache_lock:
-        _cached_news = news
-        _cached_at = time.monotonic()
-    return list(news)
+        return bool(_cached_news) and time.monotonic() - _cached_at < CACHE_TTL_SECONDS
