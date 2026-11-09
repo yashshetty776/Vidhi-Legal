@@ -15,7 +15,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
-import { colors } from "../design-tokens/colors";
+import { colors, gradients } from "../design-tokens/colors";
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -87,12 +87,12 @@ const SignUp = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.brand.primary,
+        background: gradients.auth,
         padding: 2,
       }}
     >
       <Container component="main" maxWidth="sm">
-        <Paper elevation={3} sx={{ padding: 4, borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ padding: { xs: 3, sm: 5 }, borderRadius: 3 }}>
           <Box
             sx={{
               display: 'flex',
@@ -100,7 +100,7 @@ const SignUp = () => {
               alignItems: 'center',
             }}
           >
-            <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+            <Avatar sx={{ m: 1, bgcolor: colors.brand.primary }}>
               <LockOutlinedIcon />
             </Avatar>
             <Typography component="h1" variant="h5">

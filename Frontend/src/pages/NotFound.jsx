@@ -3,7 +3,7 @@ import { Link as RouterLink } from "react-router-dom";
 
 const NotFound = () => (
   <Container maxWidth="sm" sx={{ py: 12 }}>
-    <Paper sx={{ p: 5, textAlign: "center" }} elevation={3}>
+    <Paper sx={{ p: 5, textAlign: "center" }} elevation={0}>
       <Typography variant="h1" color="primary" gutterBottom>
         404
       </Typography>

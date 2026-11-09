@@ -3,6 +3,7 @@ import { Alert, Container, Typography, Card, CardContent, Grid, Avatar, Box, Cir
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import { API_BASE_URL } from "../config";
+import { colors } from "../design-tokens/colors";
 
 const Lawyers = () => {
   const [lawyers, setLawyers] = useState([]);
@@ -67,7 +68,7 @@ const Lawyers = () => {
                         width: 80,
                         height: 80,
                         mb: 2,
-                        bgcolor: "#1976d2",
+                        bgcolor: colors.brand.primary,
                       }}
                     >
                       {lawyer.full_name?.charAt(0).toUpperCase()}
